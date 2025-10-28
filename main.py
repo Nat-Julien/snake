@@ -45,7 +45,7 @@ while not window_should_close():
                 random.randint(0,WIDTH-1),
                 random.randint(0,HEIGHT-1)
             ]
-            score+=1
+            Score+=1
         else : 
             snake=snake[1:]
         snake= snake + [new_head]
@@ -59,9 +59,9 @@ while not window_should_close():
         #DESSIN
         begin_drawing()
         clear_background(BLACK)
-
+        Strscore=str(Score)
         draw_rectangle(FRUIT[0]*SIDE,FRUIT[1]*SIDE,SIDE,SIDE,RED)
-
+        draw_text("Score="+Strscore,SIDE,SIDE,20,WHITE)
         for i, (x, y) in enumerate(snake) :  #permet de retourner l'indice puis les valeurs
             color= DARKGREEN if i==len(snake)-1 else GREEN
             draw_rectangle(x*SIDE+1,y*SIDE+1,SIDE-2,SIDE-2,color)
