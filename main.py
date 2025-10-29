@@ -1,5 +1,5 @@
 from pyray import *
-from raylib import KEY_DOWN, KEY_UP, KEY_RIGHT, KEY_LEFT, KEY_SPACE
+from raylib import KEY_DOWN, KEY_UP, KEY_RIGHT, KEY_LEFT, KEY_SPACE, KEY_V, KEY_B, KEY_N
 import random
 #Données fixées
 Hertz=6
@@ -22,6 +22,10 @@ Higherscore=0
 Score=0
 FRUIT=FRUIT_init
 perdu=False
+start=False
+Mode_megafruit=False
+Mode_death_by_edge=True
+Mode_death_by_obstacle=False
 vitesse=vitesse_init
 
 def initiateur_variable():
@@ -51,6 +55,15 @@ def new_position_fruit():
         random.randint(0,WIDTH-1),
         random.randint(0,HEIGHT-1)
         ]
+
+def activation_mega_fruit():
+    '''fonction qui donne les coordonnées et le poids du super fruit'''
+    global MEGAFRUIT,VALEUR_Megafruit 
+    MEGAFRUIT=[
+        random.randint(0,WIDTH-1),
+        random.randint(0,HEIGHT-1)
+        ]
+    VALEUR_Megafruit=random.randint(2,5)
     
 def animation():
     '''Calcule le nouveau serpent, implémente le score et change
@@ -77,6 +90,30 @@ def modification_score(indicateur):
     if indicateur==0 :
         Higherscore=max(Higherscore,Score)
         Score=0
+
+def maj_parametres():
+    '''fonction qui détecte les choix de modes de l'utilisateur quand il est sur le menu home'''
+    global Mode_death_by_edge, Mode_death_by_obstacle, Mode_megafruit
+    if is_key_pressed(KEY_V):
+        Mode_megafruit=not(Mode_megafruit)
+    if is_key_pressed(KEY_B):
+        Mode_death_by_obstacle=not(Mode_death_by_obstacle)
+    if is_key_pressed(KEY_N):
+        Mode_death_by_edge=not(Mode_death_by_edge)
+
+def dessin_home_page():
+    '''fonction qui dessine la page d'accueil en fonction des paramètre choisis'''
+    begin_drawing()
+    clear_background(BLACK)
+    draw_text('SNAKE',SIDE*WIDTH//4,SIDE*HEIGHT//6,130,YELLOW)
+    draw_text('Press the space bar to start the game !',SIDE*WIDTH//8,7*SIDE*HEIGHT//8,20,WHITE)
+    color= GREEN if Mode_megafruit else RED
+    draw_text('SUPER FRUIT (V)',SIDE*WIDTH//8,4*SIDE*HEIGHT//8,20,color)
+    color= GREEN if Mode_death_by_obstacle else RED
+    draw_text('OBSTACLE (B)',SIDE*WIDTH//8,5*SIDE*HEIGHT//8,20,color)
+    color= GREEN if Mode_death_by_edge else RED
+    draw_text('DEATH ON EDGE (N)',SIDE*WIDTH//8,6*SIDE*HEIGHT//8,25,color)
+    end_drawing()
 
 def dessin_game_page():
     '''fonction qui dessine la page game'''
@@ -110,11 +147,14 @@ def condition_perte(new_head,snake):
 #CODE DU JEU
 init_window(SIDE*WIDTH,SIDE*HEIGHT, "Mon jeu")
 set_target_fps(Hertz)
-
 while not window_should_close():
-
+    while not start and not window_should_close(): 
+        dessin_home_page()
+        maj_parametres()
+        if is_key_pressed(KEY_SPACE):
+            start=True
+    start=True
     while not perdu :
-
         #optimisation_prise_en_compe_clic
         vitesse=orientation()
         #ANIMATION_futur_serpent et condition de perte
