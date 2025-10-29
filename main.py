@@ -1,6 +1,7 @@
 from pyray import *
 from raylib import KEY_DOWN, KEY_UP, KEY_RIGHT, KEY_LEFT, KEY_SPACE, KEY_V, KEY_B, KEY_N
 import random
+
 #Données fixées
 Hertz=6
 SIDE = 40
@@ -14,7 +15,7 @@ snake_init=[
     ]
 vitesse_init=MOOVE[0]
 FRUIT_init=[WIDTH//2,HEIGHT//2]
-
+Score_min_MegaFruit=5
 
 #VARIABLES GLOBALES
 snake=snake_init
@@ -27,6 +28,8 @@ Mode_megafruit=False
 Mode_death_by_edge=True
 Mode_death_by_obstacle=False
 vitesse=vitesse_init
+Compteur_deplacement=0
+queue_en_attente=0
 
 def initiateur_variable():
     '''Remet à l'état initial les variables qui doivent l'être pour recommencer une partie'''
@@ -57,28 +60,52 @@ def new_position_fruit():
         ]
 
 def activation_mega_fruit():
-    '''fonction qui donne les coordonnées et le poids du super fruit'''
-    global MEGAFRUIT,VALEUR_Megafruit 
+    '''fonction qui donne les coordonnées et le poids du super fruit
+    ainsi que le temps avant apparition et disparition'''
+    global MEGAFRUIT,VALEUR_Megafruit, MF_Timer_app, MF_Timer_disp 
     MEGAFRUIT=[
         random.randint(0,WIDTH-1),
         random.randint(0,HEIGHT-1)
         ]
     VALEUR_Megafruit=random.randint(2,5)
-    
+    MF_Timer_app=random.randint(10*Hertz,40*Hertz)
+    #ici on diminue le temps de disp du MF en fonction du poids
+    MF_Timer_disp=random.randint(30,40)+MF_Timer_app-3*VALEUR_Megafruit
+
+
+def mange_mega_fruit_donc_nouveau_serpent():
+    '''stocke la taille de la queue à ajouter, implémente le score,
+      et relance le processus d'apparition d'un mega fruit'''
+    global queue_en_attente,Score
+    Score= Score + VALEUR_Megafruit
+    queue_en_attente=VALEUR_Megafruit
+    activation_mega_fruit()
+
 def animation():
     '''Calcule le nouveau serpent, implémente le score et change
       le fruit si nécessaire, vérifie si le joueur a perdu'''
-    global snake
+    global snake, queue_en_attente
     vx, vy = vitesse
     hx, hy=snake[-1]
-    new_head=[hx+vx,hy+vy]
+    #pour gérer la différence suivant l'activation du mode Mode_death_by_edge
+    if Mode_death_by_edge : 
+        new_head=[hx+vx,hy+vy]
+    else : 
+        new_head=[(hx+vx)%WIDTH,(hy+vy)%HEIGHT]
+
+    if Mode_megafruit and Score>=Score_min_MegaFruit: 
+        if new_head==MEGAFRUIT : 
+            mange_mega_fruit_donc_nouveau_serpent()
 
     if new_head==FRUIT:
             new_position_fruit()
             modification_score(1)
     else : 
-        snake=snake[1:]
-    snake=snake + [new_head]
+        if queue_en_attente>0:
+            queue_en_attente=queue_en_attente-1
+        else : 
+            snake=snake[1:]
+    snake=snake + [new_head]     
     condition_perte(new_head,snake)
     
 def modification_score(indicateur):
@@ -91,7 +118,7 @@ def modification_score(indicateur):
         Higherscore=max(Higherscore,Score)
         Score=0
 
-def maj_parametres():
+def maj_parametres_homepage():
     '''fonction qui détecte les choix de modes de l'utilisateur quand il est sur le menu home'''
     global Mode_death_by_edge, Mode_death_by_obstacle, Mode_megafruit
     if is_key_pressed(KEY_V):
@@ -106,13 +133,13 @@ def dessin_home_page():
     begin_drawing()
     clear_background(BLACK)
     draw_text('SNAKE',SIDE*WIDTH//4,SIDE*HEIGHT//6,130,YELLOW)
-    draw_text('Press the space bar to start the game !',SIDE*WIDTH//8,7*SIDE*HEIGHT//8,20,WHITE)
+    draw_text('Press the space bar to start the game !',SIDE*WIDTH//8,7*SIDE*HEIGHT//8,25,WHITE)
     color= GREEN if Mode_megafruit else RED
     draw_text('SUPER FRUIT (V)',SIDE*WIDTH//8,4*SIDE*HEIGHT//8,20,color)
     color= GREEN if Mode_death_by_obstacle else RED
     draw_text('OBSTACLE (B)',SIDE*WIDTH//8,5*SIDE*HEIGHT//8,20,color)
     color= GREEN if Mode_death_by_edge else RED
-    draw_text('DEATH ON EDGE (N)',SIDE*WIDTH//8,6*SIDE*HEIGHT//8,25,color)
+    draw_text('DEATH ON EDGE (N)',SIDE*WIDTH//8,6*SIDE*HEIGHT//8,20,color)
     end_drawing()
 
 def dessin_game_page():
@@ -120,6 +147,12 @@ def dessin_game_page():
     begin_drawing()
     clear_background(BLACK)
     draw_rectangle(FRUIT[0]*SIDE,FRUIT[1]*SIDE,SIDE,SIDE,RED)
+    if Mode_megafruit and Score>=Score_min_MegaFruit :
+        if MF_Timer_app<=0 and MF_Timer_disp>=0:
+            draw_rectangle(MEGAFRUIT[0]*SIDE,MEGAFRUIT[1]*SIDE,SIDE,SIDE,YELLOW)
+            draw_text(str(VALEUR_Megafruit),MEGAFRUIT[0]*SIDE+5,MEGAFRUIT[1]*SIDE+5,40,RED)
+        if MF_Timer_disp<0 :
+            activation_mega_fruit()
     draw_text("Score="+Strscore,SIDE,SIDE,20,WHITE)
     for i, (x, y) in enumerate(snake) :  #permet de retourner l'indice puis les valeurs
         color= BLUE if i==len(snake)-1 else GREEN
@@ -150,11 +183,17 @@ set_target_fps(Hertz)
 while not window_should_close():
     while not start and not window_should_close(): 
         dessin_home_page()
-        maj_parametres()
+        maj_parametres_homepage()
         if is_key_pressed(KEY_SPACE):
             start=True
     start=True
+    if Mode_megafruit : 
+            activation_mega_fruit()
     while not perdu :
+        if Mode_megafruit and Score>=Score_min_MegaFruit : 
+            MF_Timer_app=MF_Timer_app-1
+            MF_Timer_disp=MF_Timer_disp-1
+        
         #optimisation_prise_en_compe_clic
         vitesse=orientation()
         #ANIMATION_futur_serpent et condition de perte
