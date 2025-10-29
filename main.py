@@ -3,11 +3,11 @@ from raylib import KEY_DOWN, KEY_UP, KEY_RIGHT, KEY_LEFT, KEY_SPACE, KEY_V, KEY_
 import random
 
 #Données fixées
-Hertz=6
+Hertz=6 #fréquence d'avancement du serpent
 SIDE = 40
 WIDTH = 20
 HEIGHT=10
-MOOVE=[(1,0),(-1,0),(0,1),(0,-1)] #right,left, down, up
+MOOVE=[(1,0),(-1,0),(0,1),(0,-1)] #right,left, down, up : les mouvements autorisés
 snake_init=[
         [1,1],
         [2,1],
@@ -15,7 +15,7 @@ snake_init=[
     ]
 vitesse_init=MOOVE[0]
 FRUIT_init=[WIDTH//2,HEIGHT//2]
-Score_min_MegaFruit=5
+Score_min_MegaFruit=5 #score minimal pour que le MegaFruit commence à apparaître
 
 #VARIABLES GLOBALES
 snake=snake_init
@@ -27,9 +27,8 @@ start=False
 Mode_megafruit=False
 Mode_death_by_edge=True
 Mode_death_by_obstacle=False
-vitesse=vitesse_init
-Compteur_deplacement=0
-queue_en_attente=0
+vitesse=vitesse_init #vecteur de changement de position
+queue_en_attente=0 #Mesure du nombre de cases à rajouter au serpent
 
 def initiateur_variable():
     '''Remet à l'état initial les variables qui doivent l'être pour recommencer une partie'''
@@ -72,7 +71,6 @@ def activation_mega_fruit():
     #ici on diminue le temps de disp du MF en fonction du poids
     MF_Timer_disp=random.randint(30,40)+MF_Timer_app-3*VALEUR_Megafruit
 
-
 def mange_mega_fruit_donc_nouveau_serpent():
     '''stocke la taille de la queue à ajouter, implémente le score,
       et relance le processus d'apparition d'un mega fruit'''
@@ -92,19 +90,21 @@ def animation():
         new_head=[hx+vx,hy+vy]
     else : 
         new_head=[(hx+vx)%WIDTH,(hy+vy)%HEIGHT]
-
+    #Pour détected si le megafruit est mangé
     if Mode_megafruit and Score>=Score_min_MegaFruit: 
         if new_head==MEGAFRUIT : 
             mange_mega_fruit_donc_nouveau_serpent()
-
+    #gestion du cas où le fruit est mangé
     if new_head==FRUIT:
             new_position_fruit()
             modification_score(1)
     else : 
-        if queue_en_attente>0:
+        #ici la variable queue représente le nombre d'élement à rajouter à la queue
+        if queue_en_attente>0: 
             queue_en_attente=queue_en_attente-1
-        else : 
-            snake=snake[1:]
+        else :
+            #seulement s'il n'y a aucun élément à rajouter, on enlève le dernier point 
+            snake=snake[1:] 
     snake=snake + [new_head]     
     condition_perte(new_head,snake)
     
@@ -194,16 +194,15 @@ while not window_should_close():
             MF_Timer_app=MF_Timer_app-1
             MF_Timer_disp=MF_Timer_disp-1
         
-        #optimisation_prise_en_compe_clic
+        #optimisation_prise_en_compte_clic
         vitesse=orientation()
         #ANIMATION_futur_serpent et condition de perte
         animation()
-        #optimisation_prise_en_compe_clic
+        #optimisation_prise_en_compte_clic
         vitesse=orientation()
         #DESSIN PAGE GAME
         Strscore=str(Score)
         dessin_game_page()
-
     #Page Game Over
     modification_score(0)
     Strhigherscore=str(Higherscore)
