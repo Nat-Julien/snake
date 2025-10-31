@@ -29,6 +29,7 @@ Mode_death_by_edge=True
 Mode_death_by_obstacle=False
 vitesse=vitesse_init #vecteur de changement de position
 queue_en_attente=0 #Mesure du nombre de cases à rajouter au serpent
+liste_obstacle=[]
 
 def initiateur_variable():
     '''Remet à l'état initial les variables qui doivent l'être pour recommencer une partie'''
@@ -36,6 +37,10 @@ def initiateur_variable():
     snake=snake_init
     perdu=False
     vitesse=vitesse_init
+    if Mode_death_by_obstacle : 
+                creation_liste_obstacle()
+                if FRUIT in liste_obstacle :
+                    new_position_fruit()
 
 def orientation():
     '''Renvoie le vecteur de déplacement élémentaire en accord avec la dernière touche enfoncée'''
@@ -57,6 +62,32 @@ def new_position_fruit():
         random.randint(0,WIDTH-1),
         random.randint(0,HEIGHT-1)
         ]
+    if FRUIT in liste_obstacle : 
+        new_position_fruit()
+
+def creation_liste_obstacle():
+    '''Crée une liste aléatoire d'obstacles'''
+    global liste_obstacle
+    #on vide la liste si elle ne l'est pas, pour en créer une nouvelle
+    liste_obstacle=[]
+    nombre_obstacle=random.randint(WIDTH//4,WIDTH//2)
+    #on enlève les valeurs à côté des coins qui empêcheraient de manger le fruit en mode bord
+    #et les 3 premières valeurs parcourues par la tête
+    liste_interdite=[[1,0],[0,1],
+                    [0,HEIGHT-2],[1,HEIGHT-1],
+                    [WIDTH-2,0],[WIDTH-1,1],
+                    [WIDTH-2,HEIGHT-1],[WIDTH-1,HEIGHT-2],
+                    [3,1],[4,1],[5,1]]
+    while len(liste_obstacle)<nombre_obstacle:
+        new_obstacle=[random.randint(0,WIDTH-1),
+        random.randint(0,HEIGHT-1)]
+        if (new_obstacle not in liste_obstacle) and (new_obstacle not in liste_interdite): 
+            liste_obstacle=liste_obstacle+[new_obstacle]
+
+def affichage_obstacle(liste_obstacle_fournie):
+    '''affichage des obstacles'''
+    for x,y in liste_obstacle_fournie : 
+        draw_rectangle(x*SIDE,y*SIDE,SIDE,SIDE,GRAY)
 
 def activation_mega_fruit():
     '''fonction qui donne les coordonnées et le poids du super fruit
@@ -66,6 +97,9 @@ def activation_mega_fruit():
         random.randint(0,WIDTH-1),
         random.randint(0,HEIGHT-1)
         ]
+    #ici on recalcule un fruit si le fruit calculé tombe sur un obstacle
+    if MEGAFRUIT in liste_obstacle : 
+        activation_mega_fruit()
     VALEUR_Megafruit=random.randint(2,5)
     MF_Timer_app=random.randint(10*Hertz,40*Hertz)
     #ici on diminue le temps de disp du MF en fonction du poids
@@ -146,6 +180,7 @@ def dessin_game_page():
     '''fonction qui dessine la page game'''
     begin_drawing()
     clear_background(BLACK)
+    affichage_obstacle(liste_obstacle)
     draw_rectangle(FRUIT[0]*SIDE,FRUIT[1]*SIDE,SIDE,SIDE,RED)
     if Mode_megafruit and Score>=Score_min_MegaFruit :
         if MF_Timer_app<=0 and MF_Timer_disp>=0:
@@ -172,9 +207,11 @@ def dessin_gameover_page():
 def condition_perte(new_head,snake):
     '''Regarde si le joueur a perdu et modifie la variable 'perdu' si c'est le cas'''
     global perdu
+    if new_head in liste_obstacle : 
+        perdu=True
     if new_head[1]>=HEIGHT or new_head[1]<0 or new_head[0]<0 or new_head[0]>=WIDTH : 
         perdu=True
-    elif new_head in snake[:-1]:
+    if new_head in snake[:-1]:
         perdu=True
 
 #CODE DU JEU
@@ -186,6 +223,7 @@ while not window_should_close():
         maj_parametres_homepage()
         if is_key_pressed(KEY_SPACE):
             start=True
+            initiateur_variable()
     start=True
     if Mode_megafruit : 
             activation_mega_fruit()
